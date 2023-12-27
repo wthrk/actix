@@ -3,6 +3,7 @@ members = [
     "actix",
     "actix-broker",
     "actix-derive",
+    "actix-wasm-test",
 ]
 resolver = "2"
 
