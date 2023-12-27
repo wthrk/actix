@@ -12,13 +12,13 @@ use std::{
 
 use actix_rt::{ArbiterHandle, System};
 use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 
 use crate::{
     actor::{Actor, Supervised},
     address::Addr,
     context::Context,
     supervisor::Supervisor,
+    Mutex,
 };
 
 type AnyMap = HashMap<TypeId, Box<dyn Any>>;

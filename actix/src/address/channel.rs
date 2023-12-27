@@ -16,7 +16,6 @@ use std::{
 };
 
 use futures_core::{stream::Stream, task::__internal::AtomicWaker};
-use parking_lot::Mutex;
 use tokio::sync::oneshot::{channel as oneshot_channel, Receiver as OneshotReceiver};
 
 use super::{
@@ -27,6 +26,7 @@ use super::{
 use crate::{
     actor::Actor,
     handler::{Handler, Message},
+    Mutex,
 };
 
 pub trait Sender<M>: Send

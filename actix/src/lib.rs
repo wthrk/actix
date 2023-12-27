@@ -41,10 +41,12 @@ mod supervisor;
 pub mod actors;
 pub mod clock;
 pub mod fut;
-pub mod io;
 pub mod registry;
 pub mod sync;
 pub mod utils;
+
+#[cfg(all(feature = "rt-tokio", not(feature = "rt-wasm-bindgen")))]
+pub mod io;
 
 #[cfg(feature = "macros")]
 pub use actix_derive::{main, test, Message, MessageResponse};
@@ -109,7 +111,6 @@ pub mod prelude {
             ActorResponse, AtomicResponse, Handler, Message, MessageResult, Response,
             ResponseActFuture, ResponseFuture,
         },
-        io,
         registry::{ArbiterService, SystemService},
         stream::StreamHandler,
         supervisor::Supervisor,
@@ -117,6 +118,9 @@ pub mod prelude {
         utils::{IntervalFunc, TimerFunc},
     };
 }
+
+#[cfg(all(feature = "rt-tokio", not(feature = "rt-wasm-bindgen")))]
+pub use io;
 
 pub mod dev {
     //! The `actix` prelude for library developers.
@@ -172,6 +176,7 @@ pub mod dev {
 /// # Panics
 ///
 /// This function panics if the actix system is already running.
+#[cfg(all(feature = "rt-tokio", not(feature = "rt-wasm-bindgen")))]
 #[allow(clippy::unit_arg, clippy::needless_doctest_main)]
 pub fn run<R>(f: R) -> std::io::Result<()>
 where
@@ -179,3 +184,56 @@ where
 {
     Ok(actix_rt::System::new().block_on(f))
 }
+
+#[cfg(all(feature = "rt-tokio", not(feature = "rt-wasm-bindgen")))]
+pub use par1king_lot::{Mutex, RawMutex};
+
+/// Mutex for wasm-single threaded applications.
+/// 要はロックを掛ける必要がなくて実質 Refcell と同じ
+//#[cfg(all(feature = "rt-wasm-bindgen", not(feature = "rt-tokio")))]
+mod wasm {
+    use parking_lot::lock_api::{Mutex as Mutex_, RawMutex as RawMutex_};
+    use std::cell::RefCell;
+
+    pub struct RawMutex {
+        inner: RefCell<bool>,
+    }
+
+    unsafe impl RawMutex_ for RawMutex {
+        const INIT: Self = Self {
+            inner: RefCell::new(false),
+        };
+
+        type GuardMarker = parking_lot::lock_api::GuardSend;
+
+        fn lock(&self) {
+            let mut guard = self.inner.borrow_mut();
+            if *guard {
+                panic!("Cannot lock a mutex recursively");
+            }
+            *guard = true;
+        }
+
+        fn try_lock(&self) -> bool {
+            let mut guard = self.inner.borrow_mut();
+            if *guard {
+                false
+            } else {
+                *guard = true;
+                true
+            }
+        }
+
+        unsafe fn unlock(&self) {
+            *self.inner.borrow_mut() = false;
+        }
+    }
+
+    unsafe impl Send for RawMutex {}
+    unsafe impl Sync for RawMutex {}
+
+    pub type Mutex<T> = Mutex_<RawMutex, T>;
+}
+
+#[cfg(all(feature = "rt-wasm-bindgen", not(feature = "rt-tokio")))]
+pub use wasm::{Mutex, RawMutex};
