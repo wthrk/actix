@@ -97,14 +97,12 @@ async fn test_address() {
 
     let sys = System::new();
     sys.block_on(async move {
-        let arbiter = Arbiter::new();
-
         let addr = MyActor(count2).start();
         let addr2 = addr.clone();
         let addr3 = addr.clone();
         addr.do_send(Ping(1));
 
-        arbiter.spawn_fn(move || {
+        Arbiter::try_current().unwrap().spawn_fn(move || {
             addr3.do_send(Ping(2));
 
             actix_rt::spawn(async move {
@@ -113,7 +111,8 @@ async fn test_address() {
                 //System::current().stop();
             });
         });
-    }).await;
+    })
+    .await;
 
     actix_rt::time::sleep(Duration::from_millis(100)).await;
 
@@ -148,13 +147,14 @@ impl Actor for WeakAddressRunner {
     }
 }
 
-#[test]
-fn test_weak_address() {
+#[wasm_bindgen_test]
+async fn test_weak_address() {
     let sys = System::new();
 
-    sys.block_on(async move {
+    sys.block_on(async {
         WeakAddressRunner.start();
-    });
+    })
+    .await;
 }
 
 struct WeakRecipientRunner;
@@ -192,17 +192,18 @@ impl Actor for WeakRecipientRunner {
     }
 }
 
-#[test]
-fn test_weak_recipient() {
+#[wasm_bindgen_test]
+async fn test_weak_recipient() {
     let sys = System::new();
 
     sys.block_on(async move {
         WeakRecipientRunner.start();
-    });
+    })
+    .await;
 }
 
-#[test]
-fn test_weak_recipient_can_be_cloned() {
+#[wasm_bindgen_test]
+async fn test_weak_recipient_can_be_cloned() {
     let sys = System::new();
 
     sys.block_on(async move {
@@ -227,11 +228,12 @@ fn test_weak_recipient_can_be_cloned() {
             pings, 2,
             "both the weak recipient and its clone must have sent a ping"
         );
-    });
+    })
+    .await;
 }
 
-#[test]
-fn test_recipient_can_be_downgraded() {
+#[wasm_bindgen_test]
+async fn test_recipient_can_be_downgraded() {
     let sys = System::new();
 
     sys.block_on(async move {
@@ -259,11 +261,12 @@ fn test_recipient_can_be_downgraded() {
             ping_count, 2,
             "weak recipients must not fail to send a message"
         );
-    });
+    })
+    .await;
 }
 
-#[test]
-fn test_weak_addr_partial_equality() {
+#[wasm_bindgen_test]
+async fn test_weak_addr_partial_equality() {
     let sys = System::new();
 
     sys.block_on(async move {
@@ -306,11 +309,12 @@ fn test_weak_addr_partial_equality() {
         // and drop the second actor as well
         drop(actor2);
         check_equality_assertions();
-    });
+    })
+    .await;
 }
 
-#[test]
-fn test_sync_recipient_call() {
+#[wasm_bindgen_test]
+async fn test_sync_recipient_call() {
     let count = Arc::new(AtomicUsize::new(0));
     let count2 = Arc::clone(&count);
 
@@ -323,26 +327,31 @@ fn test_sync_recipient_call() {
         actix_rt::spawn(async move {
             let _ = addr2.send(Ping(1)).await;
             let _ = addr2.send(Ping(2)).await;
-            System::current().stop();
+            //System::current().stop();
         });
-    });
+    })
+    .await;
+
+    actix_rt::time::sleep(Duration::from_millis(100)).await;
 
     assert_eq!(count.load(Ordering::Relaxed), 3);
 }
 
-#[test]
-fn test_error_result() {
-    System::new().block_on(async {
-        let addr = MyActor3.start();
+#[wasm_bindgen_test]
+async fn test_error_result() {
+    System::new()
+        .block_on(async {
+            let addr = MyActor3.start();
 
-        actix_rt::spawn(async move {
-            let res = addr.send(Ping(0)).await;
-            match res {
-                Ok(_) => (),
-                _ => panic!("Should not happen"),
-            };
-        });
-    });
+            actix_rt::spawn(async move {
+                let res = addr.send(Ping(0)).await;
+                match res {
+                    Ok(_) => (),
+                    _ => panic!("Should not happen"),
+                };
+            });
+        })
+        .await;
 }
 
 struct TimeoutActor;
@@ -359,8 +368,8 @@ impl Handler<Ping> for TimeoutActor {
     }
 }
 
-#[test]
-fn test_message_timeout() {
+#[wasm_bindgen_test]
+async fn test_message_timeout() {
     let count = Arc::new(AtomicUsize::new(0));
     let count2 = Arc::clone(&count);
 
@@ -378,9 +387,12 @@ fn test_message_timeout() {
                 }
                 _ => panic!("Should not happen"),
             }
-            System::current().stop();
+            //System::current().stop();
         });
-    });
+    })
+    .await;
+
+    actix_rt::time::sleep(Duration::from_millis(100)).await;
 
     assert_eq!(count.load(Ordering::Relaxed), 1);
 }
@@ -411,8 +423,8 @@ impl Actor for TimeoutActor3 {
     }
 }
 
-#[test]
-fn test_call_message_timeout() {
+#[wasm_bindgen_test]
+async fn test_call_message_timeout() {
     let count = Arc::new(AtomicUsize::new(0));
     let count2 = Arc::clone(&count);
 
@@ -420,120 +432,131 @@ fn test_call_message_timeout() {
     sys.block_on(async move {
         let addr = TimeoutActor.start();
         let _addr2 = TimeoutActor3(addr, count2).start();
-    });
+    })
+    .await;
+
+    actix_rt::time::sleep(Duration::from_millis(100)).await;
 
     assert_eq!(count.load(Ordering::Relaxed), 1);
 }
 
-#[test]
-fn test_address_eq() {
+#[wasm_bindgen_test]
+async fn test_address_eq() {
     let count0 = Arc::new(AtomicUsize::new(0));
     let count1 = Arc::clone(&count0);
 
-    System::new().block_on(async move {
-        let addr0 = MyActor(count0).start();
-        let addr01 = addr0.clone();
-        let addr02 = addr01.clone();
+    System::new()
+        .block_on(async move {
+            let addr0 = MyActor(count0).start();
+            let addr01 = addr0.clone();
+            let addr02 = addr01.clone();
 
-        assert!(addr0 == addr01);
-        assert!(addr0 == addr02);
+            assert!(addr0 == addr01);
+            assert!(addr0 == addr02);
 
-        let addr1 = MyActor(count1).start();
+            let addr1 = MyActor(count1).start();
 
-        assert!(addr0 != addr1);
+            assert!(addr0 != addr1);
 
-        System::current().stop();
-    });
+            System::current().stop();
+        })
+        .await;
 }
 
-#[test]
-fn test_address_hash() {
+#[wasm_bindgen_test]
+async fn test_address_hash() {
     let count0 = Arc::new(AtomicUsize::new(0));
     let count1 = Arc::clone(&count0);
 
-    System::new().block_on(async move {
-        let addr0 = MyActor(count0).start();
-        let addr01 = addr0.clone();
+    System::new()
+        .block_on(async move {
+            let addr0 = MyActor(count0).start();
+            let addr01 = addr0.clone();
 
-        let mut addresses = HashSet::new();
-        addresses.insert(addr0.clone());
-        addresses.insert(addr01.clone());
+            let mut addresses = HashSet::new();
+            addresses.insert(addr0.clone());
+            addresses.insert(addr01.clone());
 
-        assert_eq!(addresses.len(), 1);
-        assert!(addresses.contains(&addr0));
-        assert!(addresses.contains(&addr01));
+            assert_eq!(addresses.len(), 1);
+            assert!(addresses.contains(&addr0));
+            assert!(addresses.contains(&addr01));
 
-        let addr1 = MyActor(count1).start();
-        addresses.insert(addr1.clone());
+            let addr1 = MyActor(count1).start();
+            addresses.insert(addr1.clone());
 
-        assert_eq!(addresses.len(), 2);
-        assert!(addresses.contains(&addr1));
+            assert_eq!(addresses.len(), 2);
+            assert!(addresses.contains(&addr1));
 
-        assert!(addresses.remove(&addr0));
-        assert!(!addresses.contains(&addr0));
-        assert!(!addresses.contains(&addr01));
-        assert_eq!(addresses.len(), 1);
-        assert!(addresses.contains(&addr1));
+            assert!(addresses.remove(&addr0));
+            assert!(!addresses.contains(&addr0));
+            assert!(!addresses.contains(&addr01));
+            assert_eq!(addresses.len(), 1);
+            assert!(addresses.contains(&addr1));
 
-        System::current().stop();
-    });
+            System::current().stop();
+        })
+        .await;
 }
 
-#[test]
-fn test_recipient_eq() {
+#[wasm_bindgen_test]
+async fn test_recipient_eq() {
     let count0 = Arc::new(AtomicUsize::new(0));
     let count1 = Arc::clone(&count0);
 
-    System::new().block_on(async move {
-        let addr0 = MyActor(count0).start();
-        let recipient01 = addr0.clone().recipient::<Ping>();
-        let recipient02 = addr0.recipient::<Ping>();
+    System::new()
+        .block_on(async move {
+            let addr0 = MyActor(count0).start();
+            let recipient01 = addr0.clone().recipient::<Ping>();
+            let recipient02 = addr0.recipient::<Ping>();
 
-        assert!(recipient01 == recipient02);
+            assert!(recipient01 == recipient02);
 
-        let recipient03 = recipient01.clone();
-        assert!(recipient01 == recipient03);
+            let recipient03 = recipient01.clone();
+            assert!(recipient01 == recipient03);
 
-        let addr1 = MyActor(count1).start();
-        let recipient11 = addr1.recipient::<Ping>();
+            let addr1 = MyActor(count1).start();
+            let recipient11 = addr1.recipient::<Ping>();
 
-        assert!(recipient01 != recipient11);
+            assert!(recipient01 != recipient11);
 
-        System::current().stop();
-    });
+            System::current().stop();
+        })
+        .await;
 }
 
-#[test]
-fn test_recipient_hash() {
+#[wasm_bindgen_test]
+async fn test_recipient_hash() {
     let count0 = Arc::new(AtomicUsize::new(0));
     let count1 = Arc::clone(&count0);
 
-    System::new().block_on(async move {
-        let addr0 = MyActor(count0).start();
-        let recipient01 = addr0.clone().recipient::<Ping>();
-        let recipient02 = addr0.recipient::<Ping>();
+    System::new()
+        .block_on(async move {
+            let addr0 = MyActor(count0).start();
+            let recipient01 = addr0.clone().recipient::<Ping>();
+            let recipient02 = addr0.recipient::<Ping>();
 
-        let mut recipients = HashSet::new();
-        recipients.insert(recipient01.clone());
-        recipients.insert(recipient02.clone());
+            let mut recipients = HashSet::new();
+            recipients.insert(recipient01.clone());
+            recipients.insert(recipient02.clone());
 
-        assert_eq!(recipients.len(), 1);
-        assert!(recipients.contains(&recipient01));
-        assert!(recipients.contains(&recipient02));
+            assert_eq!(recipients.len(), 1);
+            assert!(recipients.contains(&recipient01));
+            assert!(recipients.contains(&recipient02));
 
-        let addr1 = MyActor(count1).start();
-        let recipient11 = addr1.recipient::<Ping>();
-        recipients.insert(recipient11.clone());
+            let addr1 = MyActor(count1).start();
+            let recipient11 = addr1.recipient::<Ping>();
+            recipients.insert(recipient11.clone());
 
-        assert_eq!(recipients.len(), 2);
-        assert!(recipients.contains(&recipient11));
+            assert_eq!(recipients.len(), 2);
+            assert!(recipients.contains(&recipient11));
 
-        assert!(recipients.remove(&recipient01));
-        assert!(!recipients.contains(&recipient01));
-        assert!(!recipients.contains(&recipient02));
-        assert_eq!(recipients.len(), 1);
-        assert!(recipients.contains(&recipient11));
+            assert!(recipients.remove(&recipient01));
+            assert!(!recipients.contains(&recipient01));
+            assert!(!recipients.contains(&recipient02));
+            assert_eq!(recipients.len(), 1);
+            assert!(recipients.contains(&recipient11));
 
-        System::current().stop();
-    });
+            System::current().stop();
+        })
+        .await;
 }

@@ -45,7 +45,7 @@ pub mod registry;
 pub mod sync;
 pub mod utils;
 
-#[cfg(all(feature = "rt-tokio", not(feature = "rt-wasm-bindgen")))]
+//#[cfg(all(feature = "rt-tokio", not(feature = "rt-wasm-bindgen")))]
 pub mod io;
 
 #[cfg(feature = "macros")]
@@ -118,9 +118,6 @@ pub mod prelude {
         utils::{IntervalFunc, TimerFunc},
     };
 }
-
-#[cfg(all(feature = "rt-tokio", not(feature = "rt-wasm-bindgen")))]
-pub use io;
 
 pub mod dev {
     //! The `actix` prelude for library developers.

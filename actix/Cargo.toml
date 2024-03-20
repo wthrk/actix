@@ -31,7 +31,6 @@ rt-tokio = [
   "tokio/parking_lot",
   "tokio/signal",
   "tokio/time",
-  "tokio/io-util",
   "actix-rt/rt-tokio",
 ]
 rt-wasm-bindgen = [
@@ -63,7 +62,7 @@ pin-project-lite = "0.2"
 smallvec = "1.6.1"
 tokio-util = { version = "0.7", features = ["codec"] }
 
-tokio = { version = "1", features = ["macros", "sync"], optional = true, default-features = false }
+tokio = { version = "1", features = ["macros", "sync", "io-util"], optional = true, default-features = false }
 wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 parking_lot = { version = "0.12" }

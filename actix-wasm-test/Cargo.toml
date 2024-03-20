@@ -17,7 +17,9 @@ console_error_panic_hook = { version = "0.1.7", optional = true }
 actix = { path = "../actix", version = "0.13.1", features = ["rt-wasm-bindgen", "macros"], default-features = false }
 
 [dev-dependencies]
+bytes = "1"
 futures-util = { version = "0.3.22", default-features = false }
+futures-sink = { version = "0.3.22", default-features = false }
 wasm-bindgen-test = "0.3.34"
 wasm-bindgen-futures = "*"
 web-sys = { vertion = "*", features = ["console", "Window"] }
