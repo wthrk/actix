@@ -122,6 +122,9 @@ impl Handler<Data> for MyActor {
 #[wasm_bindgen_test]
 #[ignore]
 async fn test_send_1() {
+    let sys = System::new();
+    sys.run();
+
     let (sender, mut receiver) = mpsc::unbounded_channel();
 
     actix_rt::spawn(async move {
@@ -154,6 +157,8 @@ async fn test_send_1() {
 #[wasm_bindgen_test]
 #[ignore]
 async fn test_send_2() {
+    System::new().run();
+
     let (sender, mut receiver) = mpsc::unbounded_channel();
 
     actix_rt::spawn(async move {
@@ -193,6 +198,7 @@ async fn test_send_2() {
 #[wasm_bindgen_test]
 #[ignore]
 async fn test_send_error() {
+    System::new().run();
     let (sender, mut receiver) = mpsc::unbounded_channel();
     actix_rt::spawn(async move {
         let addr = MyActor::create(move |ctxt| {
@@ -249,6 +255,7 @@ impl Handler<Data> for AnotherActor {
 #[wasm_bindgen_test]
 #[ignore]
 async fn test_send_bytes() {
+    System::new().run();
     let (sender, mut receiver) = mpsc::unbounded_channel();
     let bytes = Bytes::from_static(b"Hello");
     let expected_bytes = bytes.clone();
@@ -268,8 +275,8 @@ async fn test_send_bytes() {
 }
 
 #[wasm_bindgen_test]
-#[ignore]
 async fn test_send_single_bytes() {
+    System::new().run();
     let (sender, mut receiver) = mpsc::unbounded_channel();
     let addr = MyActor::create(move |ctxt| {
         let sink = MySink {
