@@ -120,7 +120,6 @@ impl Handler<Data> for MyActor {
 }
 
 #[wasm_bindgen_test]
-#[ignore]
 async fn test_send_1() {
     let sys = System::new();
     sys.run();
@@ -155,7 +154,6 @@ async fn test_send_1() {
 }
 
 #[wasm_bindgen_test]
-#[ignore]
 async fn test_send_2() {
     System::new().run();
 
@@ -196,7 +194,6 @@ async fn test_send_2() {
 }
 
 #[wasm_bindgen_test]
-#[ignore]
 async fn test_send_error() {
     System::new().run();
     let (sender, mut receiver) = mpsc::unbounded_channel();
@@ -253,7 +250,6 @@ impl Handler<Data> for AnotherActor {
 }
 
 #[wasm_bindgen_test]
-#[ignore]
 async fn test_send_bytes() {
     System::new().run();
     let (sender, mut receiver) = mpsc::unbounded_channel();
