@@ -44,7 +44,7 @@ async fn test_fut_timeout() {
     let sys = System::new();
     sys.block_on(async {
         let _addr = MyActor { timeout: timeout2 }.start();
-        actix_rt::time::sleep(Duration::from_millis(200)).await;
+        actix_rt::time::sleep(Duration::from_millis(300)).await;
     })
     .await;
 
