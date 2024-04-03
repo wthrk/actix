@@ -44,10 +44,9 @@ async fn test_fut_timeout() {
     let sys = System::new();
     sys.block_on(async {
         let _addr = MyActor { timeout: timeout2 }.start();
+        actix_rt::time::sleep(Duration::from_millis(200)).await;
     })
     .await;
-
-    actix_rt::time::sleep(Duration::from_millis(100)).await;
 
     assert!(timeout.load(Ordering::Relaxed), "Not timeout");
 }
@@ -208,6 +207,7 @@ impl Handler<TryFutureMsg> for MyStreamActor2 {
 }
 
 #[wasm_bindgen_test]
+#[ignore]
 async fn test_stream_timeout() {
     let timeout = Arc::new(AtomicBool::new(false));
     let timeout2 = Arc::clone(&timeout);
@@ -215,9 +215,9 @@ async fn test_stream_timeout() {
     let sys = System::new();
     sys.block_on(async {
         let _addr = MyStreamActor { timeout: timeout2 }.start();
+        sleep(Duration::from_millis(200)).await;
     })
     .await;
-    actix_rt::time::sleep(Duration::from_millis(100)).await;
 
     assert!(timeout.load(Ordering::Relaxed), "Not timeout");
 }

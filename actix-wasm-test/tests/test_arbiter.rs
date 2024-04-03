@@ -40,29 +40,28 @@ async fn test_start_actor_message() {
 
     let (tx_fin, rx_fin) = oneshot::channel();
 
-    actix_rt::System::new()
-        .block_on(async move {
-            actix_rt::spawn(async move {
-                {
-                    let (tx, rx) = oneshot::channel();
+    let sys = actix_rt::System::new();
+    sys.block_on(async move {
+        actix_rt::spawn(async move {
+            {
+                let (tx, rx) = oneshot::channel();
 
-                    Arbiter::current().spawn_fn(move || {
-                        let addr = MyActor(act_count).start();
-                        tx.send(addr).ok().unwrap();
-                    });
+                actix_rt::spawn(async move {
+                    let addr = MyActor(act_count).start();
+                    tx.send(addr).ok().unwrap();
+                });
 
-                    // TODO: investigate under CPU stress and/or with a drop impl
-                    // original test used this line, but was buggy:
-                    // rx.await.unwrap().do_send(Ping(1));
-                    rx.await.unwrap().send(Ping(1)).await.unwrap();
-                }
+                // TODO: investigate under CPU stress and/or with a drop impl
+                // original test used this line, but was buggy:
+                // rx.await.unwrap().do_send(Ping(1));
+                rx.await.unwrap().send(Ping(1)).await.unwrap();
+            }
 
-                tx_fin.send(()).unwrap();
-            });
-        })
-        .await;
-
-    rx_fin.await.unwrap();
+            tx_fin.send(()).unwrap();
+        });
+        rx_fin.await.unwrap();
+    })
+    .await;
 
     assert_eq!(count.load(Ordering::Relaxed), 1);
 }
